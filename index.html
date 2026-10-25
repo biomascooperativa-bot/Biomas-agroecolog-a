@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Huerta Agroecológica · Pedidos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+:root{--bosque:#1f3d2b;--hoja:#4a7d37;--brote:#c5e07a;--tierra:#5a3e2b;--papel:#f4f7ee;--zapallo:#e3a02f;--blanco:#fff;--linea:#d9e2cc}
+*{box-sizing:border-box}
+body{margin:0;font-family:'DM Sans',system-ui,sans-serif;background:var(--papel);color:var(--bosque);line-height:1.5;padding-bottom:90px}
+h1,h2,h3{font-family:'Young Serif',Georgia,serif;font-weight:400;margin:0}
+header{background:var(--bosque);color:var(--papel);padding:34px 20px 54px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:28px;background:var(--papel);clip-path:ellipse(60% 100% at 50% 100%)}
+.wrap{max-width:1100px;margin:0 auto}
+header h1{font-size:clamp(1.9rem,5vw,3rem);line-height:1.1;max-width:14em}
+header p{max-width:36em;margin:12px 0 0;color:#d6e6c0}
+.estado{display:inline-block;margin-top:16px;padding:6px 14px;border-radius:99px;background:var(--brote);color:var(--bosque);font-weight:700;font-size:.9rem}
+.estado.cerrado{background:var(--zapallo)}
+.cats{display:flex;gap:8px;overflow-x:auto;padding:6px 20px 14px;max-width:1100px;margin:0 auto;scrollbar-width:none}
+.cats button{flex:none;border:1.5px solid var(--hoja);background:transparent;color:var(--bosque);border-radius:99px;padding:8px 16px;font:inherit;font-weight:500;cursor:pointer}
+.cats button.on{background:var(--hoja);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;max-width:1100px;margin:0 auto;padding:0 20px}
+.card{background:var(--blanco);border:1px solid var(--linea);border-radius:18px 18px 18px 4px;overflow:hidden;display:flex;flex-direction:column}
+.card .img{aspect-ratio:4/3;background:#e6efd3 center/cover;display:grid;place-items:center;font-size:3rem}
+.card .info{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.card h3{font-size:1.1rem}.card small{color:#5d7060}
+.precio{font-weight:700;font-size:1.15rem;color:var(--tierra)}
+.precio span{font-weight:400;font-size:.85rem;color:#5d7060}
+.step{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px}
+.step button{width:42px;height:42px;border-radius:50%;border:0;background:var(--hoja);color:#fff;font-size:1.4rem;cursor:pointer}
+.step button:disabled{background:#c9d4bd}
+.step b{min-width:70px;text-align:center}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--zapallo);outline-offset:2px}
+.barra{position:fixed;left:0;right:0;bottom:0;background:var(--bosque);color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:5}
+.barra b{font-size:1.25rem}
+.btn{background:var(--brote);color:var(--bosque);border:0;border-radius:99px;padding:12px 24px;font:inherit;font-weight:700;cursor:pointer}
+.btn:disabled{opacity:.5}
+.modal{position:fixed;inset:0;background:rgba(20,35,25,.6);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.modal.on{display:flex}
+.panel{background:var(--papel);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:22px}
+@media(min-width:700px){.modal{align-items:center}.panel{border-radius:22px}}
+.linea{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--linea)}
+.total{display:flex;justify-content:space-between;font-size:1.3rem;font-weight:700;margin:14px 0}
+label{display:block;font-weight:500;margin-top:12px}
+input,textarea{width:100%;font:inherit;padding:11px 12px;border:1.5px solid var(--linea);border-radius:10px;background:#fff;margin-top:4px}
+.err{color:#a3361b;font-weight:500;margin-top:10px}
+.link{background:none;border:0;color:var(--hoja);font:inherit;text-decoration:underline;cursor:pointer;padding:8px 0}
+.ok h2{margin-bottom:6px}
+@media print{header,.cats,.grid,.barra{display:none}.modal{position:static;display:block;background:none}.panel{max-height:none}.noprint{display:none}}
+@media(prefers-reduced-motion:no-preference){.card{transition:transform .15s}.card:hover{transform:translateY(-3px)}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1 id="tienda">Verdura de la huerta, sin venenos, directo a tu mesa</h1>
+  <p>Producción agroecológica de la agricultura familiar. Elegí tus productos, dejá tus datos y te los llevamos el viernes. No pagás nada ahora: abonás al recibir tu pedido.</p>
+  <div class="estado" id="estado">Cargando…</div>
+</div></header>
+
+<main>
+  <nav class="cats" id="cats" aria-label="Categorías"></nav>
+  <section class="grid" id="grid" aria-live="polite"></section>
+</main>
+
+<div class="barra"><div>Total <b id="total">$0</b></div><button class="btn" id="verPedido" disabled>Ver mi pedido</button></div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true"><div class="panel" id="panel"></div></div>
+
+<script>
+/* ===== CONFIGURACIÓN ===== */
+const API_URL = "https://script.google.com/macros/s/AKfycbwHc4f2bvPcb2etLZB5GjWIVup7RpBtkEwVnnlPc-ebAhA05OsBTRfN-8kimX9FhVSs/exec";   // ← pegar acá la URL de la aplicación web de Apps Script (termina en /exec)
+const MONEDA = "$";
+
+/* Productos de ejemplo (se usan solo si API_URL está vacío) */
+const DEMO = {abierto:true,entrega:"viernes",productos:[
+ {id:"1",categoria:"Verduras de hoja",nombre:"Lechuga criolla",unidad:"unidad",precio:900,stock:30,imagen:"",paso:1},
+ {id:"2",categoria:"Verduras de hoja",nombre:"Acelga",unidad:"atado",precio:1200,stock:20,imagen:"",paso:1},
+ {id:"3",categoria:"Verduras de raíz",nombre:"Zanahoria",unidad:"kg",precio:1800,stock:25,imagen:"",paso:0.5},
+ {id:"4",categoria:"Hierbas",nombre:"Perejil y ciboulette",unidad:"paquete",precio:700,stock:null,imagen:"",paso:1}]};
+
+let productos=[], carrito={}, cat="Todos", abierto=true, entrega="";
+const $=id=>document.getElementById(id);
+const money=n=>MONEDA+Number(n).toLocaleString("es-AR",{maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const EMOJI={"hoja":"🥬","raíz":"🥕","hierba":"🌿","fruta":"🍎"};
+const emoji=c=>{c=c.toLowerCase();for(const k in EMOJI)if(c.includes(k))return EMOJI[k];return "🌱"};
+function imgUrl(u){ if(!u)return ""; const m=u.match(/\/d\/([\w-]+)|[?&]id=([\w-]+)/); return (u.includes("drive.google.com")&&m)?`https://drive.google.com/thumbnail?id=${m[1]||m[2]}&sz=w600`:u; }
+
+async function init(){
+  try{
+    const d = API_URL ? await (await fetch(API_URL)).json() : DEMO;
+    if(!d.ok && API_URL) throw 0;
+    productos=d.productos; abierto=d.abierto!==false; entrega=d.entrega||"";
+    if(d.tienda){document.title=d.tienda+" · Pedidos"}
+  }catch(e){ $("estado").textContent="No pudimos cargar los productos. Recargá la página."; return; }
+  $("estado").textContent = abierto ? "Pedidos abiertos hasta el jueves · Entrega el viernes" : "Pedidos cerrados · Abrimos de lunes a jueves";
+  $("estado").className = "estado"+(abierto?"":" cerrado");
+  render();
+}
+function render(){
+  const cats=["Todos",...new Set(productos.map(p=>p.categoria))];
+  $("cats").innerHTML=cats.map(c=>`<button class="${c===cat?"on":""}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+  $("cats").querySelectorAll("button").forEach(b=>b.onclick=()=>{cat=b.dataset.c;render()});
+  $("grid").innerHTML=productos.filter(p=>cat==="Todos"||p.categoria===cat).map(p=>{
+    const q=carrito[p.id]||0, im=imgUrl(p.imagen);
+    return `<article class="card"><div class="img" ${im?`style="background-image:url('${esc(im)}')"`:""}>${im?"":emoji(p.categoria)}</div>
+    <div class="info"><small>${esc(p.categoria)}</small><h3>${esc(p.nombre)}</h3>
+    <div class="precio">${money(p.precio)} <span>por ${esc(p.unidad)}</span></div>
+    <div class="step"><button aria-label="Quitar ${esc(p.nombre)}" data-id="${p.id}" data-d="-1" ${q?"":"disabled"}>−</button>
+    <b>${q?q+" "+esc(p.unidad):"—"}</b>
+    <button aria-label="Agregar ${esc(p.nombre)}" data-id="${p.id}" data-d="1" ${abierto?"":"disabled"}>+</button></div></div></article>`}).join("");
+  $("grid").querySelectorAll(".step button").forEach(b=>b.onclick=()=>cambiar(b.dataset.id,+b.dataset.d));
+  actualizar();
+}
+function cambiar(id,dir){
+  const p=productos.find(x=>x.id===id); let q=(carrito[id]||0)+dir*p.paso; q=Math.round(q*100)/100;
+  if(p.stock!==null&&q>p.stock){q=p.stock}
+  if(q<=0)delete carrito[id]; else carrito[id]=q; render();
+}
+const items=()=>Object.keys(carrito).map(id=>{const p=productos.find(x=>x.id===id);return{...p,cantidad:carrito[id],subtotal:Math.round(p.precio*carrito[id]*100)/100}});
+const totalPedido=()=>items().reduce((a,i)=>a+i.subtotal,0);
+function actualizar(){ $("total").textContent=money(totalPedido()); $("verPedido").disabled=!items().length; }
+
+function abrir(html){$("panel").innerHTML=html;$("modal").classList.add("on")}
+function cerrar(){$("modal").classList.remove("on")}
+$("modal").onclick=e=>{if(e.target.id==="modal")cerrar()};
+$("verPedido").onclick=()=>{
+  abrir(`<h2>Tu pedido</h2><div style="margin-top:10px">${items().map(i=>`<div class="linea"><span>${i.cantidad} ${esc(i.unidad)} · ${esc(i.nombre)}</span><b>${money(i.subtotal)}</b></div>`).join("")}</div>
+  <div class="total"><span>Total a pagar en la entrega</span><span>${money(totalPedido())}</span></div>
+  <p style="margin:0;color:#5d7060">💵 No hace falta pagar ahora. Abonás cuando recibís tu pedido.</p>
+  <label>Nombre y apellido *<input id="f_nombre" autocomplete="name"></label>
+  <label>Dirección de entrega *<input id="f_dir" autocomplete="street-address" placeholder="Calle, número, barrio / localidad"></label>
+  <label>Teléfono / WhatsApp<input id="f_tel" type="tel" autocomplete="tel"></label>
+  <label>Email (para recibir la confirmación)<input id="f_mail" type="email" autocomplete="email"></label>
+  <label>Observaciones<textarea id="f_obs" rows="2" placeholder="Horario, timbre, alergias, etc."></textarea></label>
+  <div class="err" id="err"></div>
+  <div style="display:flex;gap:10px;margin-top:16px;align-items:center"><button class="btn" id="enviar" style="background:var(--hoja);color:#fff">Confirmar pedido</button><button class="link" onclick="cerrar()">Seguir eligiendo</button></div>`);
+  $("enviar").onclick=enviar;
+};
+async function enviar(){
+  const v=id=>$(id).value.trim(), nombre=v("f_nombre"), dir=v("f_dir");
+  if(!nombre||!dir){$("err").textContent="Completá tu nombre y la dirección de entrega.";return}
+  const mail=v("f_mail"); if(mail&&!/^\S+@\S+\.\S+$/.test(mail)){$("err").textContent="Revisá el email.";return}
+  $("enviar").disabled=true;$("enviar").textContent="Enviando…";
+  const body={nombre,direccion:dir,telefono:v("f_tel"),email:mail,observaciones:v("f_obs"),items:items().map(i=>({id:i.id,cantidad:i.cantidad}))};
+  let r;
+  try{
+    r = API_URL ? await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})).json()
+      : {ok:true,numero:"P001",entrega:"(demo)",total:totalPedido(),items:items().map(i=>({nombre:i.nombre,unidad:i.unidad,cantidad:i.cantidad,subtotal:i.subtotal}))};
+  }catch(e){r={ok:false,error:"Sin conexión. Probá de nuevo."}}
+  if(!r.ok){$("err").textContent=r.error;$("enviar").disabled=false;$("enviar").textContent="Confirmar pedido";return}
+  carrito={}; render();
+  abrir(`<div class="ok"><h2>¡Pedido recibido! 🌱</h2><p>Número <b>${esc(r.numero)}</b> · Entrega el viernes ${esc(r.entrega)}${mail?`<br>Te enviamos la confirmación a ${esc(mail)}.`:""}</p>
+  ${r.items.map(i=>`<div class="linea"><span>${i.cantidad} ${esc(i.unidad)} · ${esc(i.nombre)}</span><b>${money(i.subtotal)}</b></div>`).join("")}
+  <div class="total"><span>Total a pagar al recibir</span><span>${money(r.total)}</span></div>
+  <p>Entregamos en: ${esc(dir)}</p>
+  <div class="noprint" style="display:flex;gap:10px"><button class="btn" style="background:var(--hoja);color:#fff" onclick="print()">Guardar / imprimir</button><button class="link" onclick="cerrar()">Cerrar</button></div></div>`);
+}
+init();
+</script>
+</body>
+</html>
