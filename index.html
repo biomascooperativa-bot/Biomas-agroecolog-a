@@ -50,13 +50,28 @@ input,textarea{width:100%;font:inherit;padding:11px 12px;border:1.5px solid var(
 .ok h2{margin-bottom:6px}
 @media print{header,.cats,.grid,.barra{display:none}.modal{position:static;display:block;background:none}.panel{max-height:none}.noprint{display:none}}
 @media(prefers-reduced-motion:no-preference){.card{transition:transform .15s}.card:hover{transform:translateY(-3px)}}
+header .info{max-width:40em}header .info p{margin:10px 0}header details{margin:10px 0}header summary{cursor:pointer;font-weight:700;color:var(--brote)}header ul{margin:8px 0;padding-left:20px;color:#d6e6c0}.opt{display:flex;gap:8px;align-items:flex-start;font-weight:400}.opt input{width:auto;margin-top:5px}
 </style>
 </head>
 <body>
 <header><div class="wrap">
-  <h1 id="tienda">Verdura de la huerta, sin venenos, directo a tu mesa</h1>
-  <p>Producción agroecológica de la agricultura familiar. Elegí tus productos, dejá tus datos y te los llevamos el viernes. No pagás nada ahora: abonás al recibir tu pedido.</p>
+  <h1 id="tienda">Ya estamos tomando pedidos de productos agroecológicos 🌱</h1>
   <div class="estado" id="estado">Cargando…</div>
+  <div class="info">
+    <p id="aviso" hidden></p>
+    <p>📅 La página está abierta de <b>lunes a jueves</b>.</p>
+    <p>🚚 <b>Entrega el <span id="cEntrega"></span></b> con envío a domicilio a partir de las 17 hs, o <b>retiro el <span id="cRetiro"></span> de 10 a 13 hs</b>.</p>
+    <p>💵 Envío gratis en compras superiores a <span id="cMin"></span>. Si la compra es menor, el envío cuesta <span id="cEnvio"></span>. El pago se realiza al recibir el pedido.</p>
+    <details><summary>Horarios aproximados de entrega por zona</summary><ul>
+      <li>El Cruce y Cuadrante 1, entre avenidas Chávez y Favaloro: 17 a 18 hs</li>
+      <li>Cuadrante 2, entre avenida Chávez y avenida del Valle: 18 a 19 hs</li>
+      <li>Cuadrante 3, entre avenida del Valle y Kelly: 18:30 a 19:30 hs</li>
+      <li>Cuadrante 4, entre avenidas Favaloro y Kelly o Centenario: 19 a 20:30 hs</li></ul></details>
+    <details><summary>♻️ Reciclado de botellas y bolsita retornable</summary>
+      <p>Recibimos botellas de vidrio para reciclar. Por el momento, solo botellas de salsa con cierre para chapa corona.</p>
+      <p>La bolsita es retornable: la primera vez tiene un costo de <span id="cBolsa"></span> y después sigue circulando en las próximas entregas. Si ya la tenés, tildá la opción al confirmar el pedido y no se cobra.</p></details>
+    <p>🌻 ¡Gracias por acompañar este proyecto agroecológico y comunitario!<br>💚 ¡Abrazo grande del equipo de BIOMAS!</p>
+  </div>
 </div></header>
 
 <main>
@@ -70,7 +85,7 @@ input,textarea{width:100%;font:inherit;padding:11px 12px;border:1.5px solid var(
 
 <script>
 /* ===== CONFIGURACIÓN ===== */
-const API_URL = "https://script.google.com/macros/s/AKfycbz7Yr4Wd1KXfkoZIEeYKqJ7O5LMbWSskS8c9H278FCUSANeEl5Yh8yWBiYuV8w-Q_p6/exec";   // ← pegar acá la URL de la aplicación web de Apps Script (termina en /exec)
+const API_URL = "https://script.google.com/macros/s/AKfycbxi_a0ijelCFz-qZacLev9uA_Ms-qdTzq4TdXukZXhDNfoCF7edbUX0rjZhOL2aAFW8/exec";   // ← pegar acá la URL de la aplicación web de Apps Script (termina en /exec)
 const MONEDA = "$";
 
 /* Productos de ejemplo (se usan solo si API_URL está vacío) */
@@ -81,6 +96,7 @@ const DEMO = {abierto:true,entrega:"viernes",productos:[
  {id:"4",categoria:"Hierbas",nombre:"Perejil y ciboulette",unidad:"paquete",precio:700,stock:null,imagen:"",paso:1}]};
 
 let productos=[], carrito={}, cat="Todos", abierto=true, entrega="";
+let cfg={entregaTxt:"viernes",retiroTxt:"sábado",envioMin:10000,envioCosto:1500,bolsaCosto:600,aviso:""};
 const $=id=>document.getElementById(id);
 const money=n=>MONEDA+Number(n).toLocaleString("es-AR",{maximumFractionDigits:2});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -92,13 +108,14 @@ async function init(){
   try{
     const d = API_URL ? await (await fetch(API_URL)).json() : DEMO;
     if(!d.ok && API_URL) throw 0;
-    productos=d.productos; abierto=d.abierto!==false; entrega=d.entrega||"";
+    productos=d.productos; abierto=d.abierto!==false; entrega=d.entrega||""; cfg=Object.assign(cfg,d.config||{});
     if(d.tienda){document.title=d.tienda+" · Pedidos"}
   }catch(e){ $("estado").textContent="No pudimos cargar los productos. Recargá la página."; return; }
-  $("estado").textContent = abierto ? "Pedidos abiertos hasta el jueves · Entrega el viernes" : "Pedidos cerrados · Abrimos de lunes a jueves";
+  $("estado").textContent = abierto ? "Pedidos abiertos hasta el jueves · Entrega el "+cfg.entregaTxt : "Pedidos cerrados · Abrimos de lunes a jueves";
   $("estado").className = "estado"+(abierto?"":" cerrado");
-  render();
+  pintarCfg(); render();
 }
+function pintarCfg(){const s=(i,t)=>{if($(i))$(i).textContent=t};s('cEntrega',cfg.entregaTxt);s('cRetiro',cfg.retiroTxt);s('cMin',money(cfg.envioMin));s('cEnvio',money(cfg.envioCosto));s('cBolsa',money(cfg.bolsaCosto));if(cfg.aviso){$('aviso').hidden=false;$('aviso').textContent=cfg.aviso}}
 function render(){
   const cats=["Todos",...new Set(productos.map(p=>p.categoria))];
   $("cats").innerHTML=cats.map(c=>`<button class="${c===cat?"on":""}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
@@ -126,36 +143,47 @@ function actualizar(){ $("total").textContent=money(totalPedido()); $("verPedido
 function abrir(html){$("panel").innerHTML=html;$("modal").classList.add("on")}
 function cerrar(){$("modal").classList.remove("on")}
 $("modal").onclick=e=>{if(e.target.id==="modal")cerrar()};
+const calc=(tipo,bolsa)=>{const s=totalPedido(),env=(tipo==="envio"&&s<cfg.envioMin)?cfg.envioCosto:0,bol=bolsa?0:cfg.bolsaCosto;return{s,env,bol,t:s+env+bol}};
+function resumen(){
+  const tipo=document.querySelector("input[name=tipo]:checked").value,c=calc(tipo,$("f_bolsa").checked);
+  $("resumen").innerHTML=`<div class="linea"><span>Productos</span><b>${money(c.s)}</b></div>`+(tipo==="envio"?`<div class="linea"><span>Envío${c.env?"":" (gratis)"}</span><b>${money(c.env)}</b></div>`:"")+(c.bol?`<div class="linea"><span>Bolsa retornable</span><b>${money(c.bol)}</b></div>`:"")+`<div class="total"><span>Total a pagar en la entrega</span><span>${money(c.t)}</span></div>`;
+  $("dirBox").style.display=tipo==="envio"?"block":"none";
+}
 $("verPedido").onclick=()=>{
   abrir(`<h2>Tu pedido</h2><div style="margin-top:10px">${items().map(i=>`<div class="linea"><span>${i.cantidad} ${esc(i.unidad)} · ${esc(i.nombre)}</span><b>${money(i.subtotal)}</b></div>`).join("")}</div>
-  <div class="total"><span>Total a pagar en la entrega</span><span>${money(totalPedido())}</span></div>
+  <label class="opt"><input type="radio" name="tipo" value="envio" checked> <span>Envío a domicilio (${esc(cfg.entregaTxt)}, desde las 17 hs)</span></label>
+  <label class="opt"><input type="radio" name="tipo" value="retiro"> <span>Retiro (${esc(cfg.retiroTxt)}, de 10 a 13 hs)</span></label>
+  <label class="opt"><input type="checkbox" id="f_bolsa"> <span>Tengo la bolsa retornable para devolver (si no, se suma ${money(cfg.bolsaCosto)})</span></label>
+  <div id="resumen" style="margin-top:10px"></div>
   <p style="margin:0;color:#5d7060">💵 No hace falta pagar ahora. Abonás cuando recibís tu pedido.</p>
   <label>Nombre y apellido *<input id="f_nombre" autocomplete="name"></label>
-  <label>Dirección de entrega *<input id="f_dir" autocomplete="street-address" placeholder="Calle, número, barrio / localidad"></label>
+  <div id="dirBox"><label>Dirección de entrega *<input id="f_dir" autocomplete="street-address" placeholder="Calle, número, barrio / localidad"></label></div>
   <label>Teléfono / WhatsApp<input id="f_tel" type="tel" autocomplete="tel"></label>
   <label>Email (para recibir la confirmación)<input id="f_mail" type="email" autocomplete="email"></label>
   <label>Observaciones<textarea id="f_obs" rows="2" placeholder="Horario, timbre, alergias, etc."></textarea></label>
   <div class="err" id="err"></div>
   <div style="display:flex;gap:10px;margin-top:16px;align-items:center"><button class="btn" id="enviar" style="background:var(--hoja);color:#fff">Confirmar pedido</button><button class="link" onclick="cerrar()">Seguir eligiendo</button></div>`);
+  document.querySelectorAll("input[name=tipo],#f_bolsa").forEach(e=>e.onchange=resumen); resumen();
   $("enviar").onclick=enviar;
 };
 async function enviar(){
-  const v=id=>$(id).value.trim(), nombre=v("f_nombre"), dir=v("f_dir");
-  if(!nombre||!dir){$("err").textContent="Completá tu nombre y la dirección de entrega.";return}
+  const v=id=>$(id).value.trim(), nombre=v("f_nombre"), dir=v("f_dir"), tipo=document.querySelector("input[name=tipo]:checked").value, bolsa=$("f_bolsa").checked;
+  if(!nombre||(tipo==="envio"&&!dir)){$("err").textContent=tipo==="envio"?"Completá tu nombre y la dirección de entrega.":"Completá tu nombre.";return}
   const mail=v("f_mail"); if(mail&&!/^\S+@\S+\.\S+$/.test(mail)){$("err").textContent="Revisá el email.";return}
   $("enviar").disabled=true;$("enviar").textContent="Enviando…";
-  const body={nombre,direccion:dir,telefono:v("f_tel"),email:mail,observaciones:v("f_obs"),items:items().map(i=>({id:i.id,cantidad:i.cantidad}))};
+  const body={nombre,tipo,tieneBolsa:bolsa,direccion:tipo==="envio"?dir:"",telefono:v("f_tel"),email:mail,observaciones:v("f_obs"),items:items().map(i=>({id:i.id,cantidad:i.cantidad}))};
   let r;
   try{
-    r = API_URL ? await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})).json()
-      : {ok:true,numero:"P001",entrega:"(demo)",total:totalPedido(),items:items().map(i=>({nombre:i.nombre,unidad:i.unidad,cantidad:i.cantidad,subtotal:i.subtotal}))};
+    if(API_URL) r=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})).json();
+    else {const c=calc(tipo,bolsa);r={ok:true,numero:"P001",entrega:"(demo)",total:c.t,envio:c.env,bolsa:c.bol,tipo:tipo==="retiro"?"Retiro sábado":"Envío a domicilio",entregaTxt:cfg.entregaTxt,retiroTxt:cfg.retiroTxt,items:items().map(i=>({nombre:i.nombre,unidad:i.unidad,cantidad:i.cantidad,subtotal:i.subtotal}))}}
   }catch(e){r={ok:false,error:"Sin conexión. Probá de nuevo."}}
   if(!r.ok){$("err").textContent=r.error;$("enviar").disabled=false;$("enviar").textContent="Confirmar pedido";return}
   carrito={}; render();
-  abrir(`<div class="ok"><h2>¡Pedido recibido! 🌱</h2><p>Número <b>${esc(r.numero)}</b> · Entrega el viernes ${esc(r.entrega)}${mail?`<br>Te enviamos la confirmación a ${esc(mail)}.`:""}</p>
+  abrir(`<div class="ok"><h2>¡Pedido recibido! 🌱</h2><p>Número <b>${esc(r.numero)}</b>${mail?`<br>Te enviamos la confirmación a ${esc(mail)}.`:""}</p>
   ${r.items.map(i=>`<div class="linea"><span>${i.cantidad} ${esc(i.unidad)} · ${esc(i.nombre)}</span><b>${money(i.subtotal)}</b></div>`).join("")}
+  ${r.tipo==="Envío a domicilio"?`<div class="linea"><span>Envío${r.envio?"":" (gratis)"}</span><b>${money(r.envio)}</b></div>`:""}${r.bolsa?`<div class="linea"><span>Bolsa retornable</span><b>${money(r.bolsa)}</b></div>`:""}
   <div class="total"><span>Total a pagar al recibir</span><span>${money(r.total)}</span></div>
-  <p>Entregamos en: ${esc(dir)}</p>
+  <p>${r.tipo==="Retiro sábado"?`Retirás el ${esc(r.retiroTxt)} de 10 a 13 hs.`:`Te lo llevamos el ${esc(r.entregaTxt)} a: ${esc(dir)}`}</p>
   <div class="noprint" style="display:flex;gap:10px"><button class="btn" style="background:var(--hoja);color:#fff" onclick="print()">Guardar / imprimir</button><button class="link" onclick="cerrar()">Cerrar</button></div></div>`);
 }
 init();
