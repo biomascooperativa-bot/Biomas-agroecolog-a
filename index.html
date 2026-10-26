@@ -162,7 +162,7 @@ $("verPedido").onclick=()=>{
   <div id="dirBox"><label>Dirección de entrega *<input id="f_dir" autocomplete="street-address" placeholder="Calle, número, barrio / localidad"></label></div>
   <label>Teléfono / WhatsApp<input id="f_tel" type="tel" autocomplete="tel"></label>
   <label>Email (para recibir la confirmación)<input id="f_mail" type="email" autocomplete="email"></label>
-  <label>Observaciones<textarea id="f_obs" rows="2" placeholder="Horario, timbre, alergias, etc."></textarea></label>
+  <label>Observaciones<textarea id="f_obs" rows="2" placeholder="Referencias de la casa, timbre,etc."></textarea></label>
   <div class="err" id="err"></div>
   <div style="display:flex;gap:10px;margin-top:16px;align-items:center"><button class="btn" id="enviar" style="background:var(--hoja);color:#fff">Confirmar pedido</button><button class="link" onclick="cerrar()">Seguir eligiendo</button></div>`);
   document.querySelectorAll("input[name=tipo],#f_bolsa").forEach(e=>e.onchange=resumen); resumen();
