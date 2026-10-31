@@ -51,6 +51,8 @@ input,textarea{width:100%;font:inherit;padding:11px 12px;border:1.5px solid var(
 @media print{header,.cats,.grid,.barra{display:none}.modal{position:static;display:block;background:none}.panel{max-height:none}.noprint{display:none}}
 @media(prefers-reduced-motion:no-preference){.card{transition:transform .15s}.card:hover{transform:translateY(-3px)}}
 header .info{max-width:40em}header .info p{margin:10px 0}header details{margin:10px 0}header summary{cursor:pointer;font-weight:700;color:var(--brote)}header ul{margin:8px 0;padding-left:20px;color:#d6e6c0}.opt{display:flex;gap:8px;align-items:flex-start;font-weight:400}.opt input{width:auto;margin-top:5px}
+.marca{font-weight:700;color:var(--hoja)}
+.dif{background:#e6f2cf;border:2px solid var(--hoja);border-radius:12px;padding:12px 14px;margin-top:16px}.dif input{width:22px;height:22px;margin-top:2px;accent-color:var(--hoja)}
 .logo{display:block;height:140px;width:auto;margin-bottom:14px}
 </style>
 </head>
@@ -89,6 +91,7 @@ header .info{max-width:40em}header .info p{margin:10px 0}header details{margin:1
 /* ===== CONFIGURACIÓN ===== */
 const API_URL = "https://script.google.com/macros/s/AKfycbxi_a0ijelCFz-qZacLev9uA_Ms-qdTzq4TdXukZXhDNfoCF7edbUX0rjZhOL2aAFW8/exec";   // ← pegar acá la URL de la aplicación web de Apps Script (termina en /exec)
 const MONEDA = "$";
+const GRUPO_WSP = "https://chat.whatsapp.com/LyCqzDTFZ0g1yZnW3rALos";   // link de invitación al grupo de WhatsApp
 
 /* Productos de ejemplo (se usan solo si API_URL está vacío) */
 const DEMO = {abierto:true,entrega:"viernes",productos:[
@@ -125,7 +128,7 @@ function render(){
   $("grid").innerHTML=productos.filter(p=>cat==="Todos"||p.categoria===cat).map(p=>{
     const q=carrito[p.id]||0, im=imgUrl(p.imagen);
     return `<article class="card"><div class="img" ${im?`style="background-image:url('${esc(im)}')"`:""}>${im?"":emoji(p.categoria)}</div>
-    <div class="info"><small>${esc(p.categoria)}</small><h3>${esc(p.nombre)}</h3>
+    <div class="info"><small>${esc(p.categoria)}</small><h3>${esc(p.nombre)}</h3>${p.marca?`<small class="marca">${esc(p.marca)}</small>`:""}
     <div class="precio">${money(p.precio)} <span>por ${esc(p.unidad)}</span></div>
     <div class="step"><button aria-label="Quitar ${esc(p.nombre)}" data-id="${p.id}" data-d="-1" ${q?"":"disabled"}>−</button>
     <b>${q?q+" "+esc(p.unidad):"—"}</b>
@@ -152,7 +155,7 @@ function resumen(){
   $("dirBox").style.display=tipo==="envio"?"block":"none";
 }
 $("verPedido").onclick=()=>{
-  abrir(`<h2>Tu pedido</h2><div style="margin-top:10px">${items().map(i=>`<div class="linea"><span>${i.cantidad} ${esc(i.unidad)} · ${esc(i.nombre)}</span><b>${money(i.subtotal)}</b></div>`).join("")}</div>
+  abrir(`<h2>Tu pedido</h2><div style="margin-top:10px">${items().map(i=>`<div class="linea"><span>${i.cantidad} ${esc(i.unidad)} · ${esc(i.nombre)}${i.marca?" – "+esc(i.marca):""}</span><b>${money(i.subtotal)}</b></div>`).join("")}</div>
   <label class="opt"><input type="radio" name="tipo" value="envio" checked> <span>Envío a domicilio (${esc(cfg.entregaTxt)}, desde las 17 hs)</span></label>
   <label class="opt"><input type="radio" name="tipo" value="retiro"> <span>Retiro (${esc(cfg.retiroTxt)}, de 10 a 13 hs)</span></label>
   <label class="opt"><input type="checkbox" id="f_bolsa"> <span>Tengo la bolsa retornable para devolver (si no, se suma ${money(cfg.bolsaCosto)})</span></label>
@@ -162,18 +165,19 @@ $("verPedido").onclick=()=>{
   <div id="dirBox"><label>Dirección de entrega *<input id="f_dir" autocomplete="street-address" placeholder="Calle, número, barrio / localidad"></label></div>
   <label>Teléfono / WhatsApp<input id="f_tel" type="tel" autocomplete="tel"></label>
   <label>Email (para recibir la confirmación)<input id="f_mail" type="email" autocomplete="email"></label>
-  <label>Observaciones<textarea id="f_obs" rows="2" placeholder="Referencias de la casa, timbre,etc."></textarea></label>
+  <label>Observaciones<textarea id="f_obs" rows="2" placeholder="Timbre, referencias, etc."></textarea></label>
+  <label class="opt dif"><input type="checkbox" id="f_dif"> <span>💬 <b>Quiero sumarme al grupo de WhatsApp</b>, donde publicamos cada semana la disponibilidad de productos</span></label>
   <div class="err" id="err"></div>
   <div style="display:flex;gap:10px;margin-top:16px;align-items:center"><button class="btn" id="enviar" style="background:var(--hoja);color:#fff">Confirmar pedido</button><button class="link" onclick="cerrar()">Seguir eligiendo</button></div>`);
   document.querySelectorAll("input[name=tipo],#f_bolsa").forEach(e=>e.onchange=resumen); resumen();
   $("enviar").onclick=enviar;
 };
 async function enviar(){
-  const v=id=>$(id).value.trim(), nombre=v("f_nombre"), dir=v("f_dir"), tipo=document.querySelector("input[name=tipo]:checked").value, bolsa=$("f_bolsa").checked;
+  const v=id=>$(id).value.trim(), nombre=v("f_nombre"), dir=v("f_dir"), tipo=document.querySelector("input[name=tipo]:checked").value, bolsa=$("f_bolsa").checked, dif=$("f_dif").checked;
   if(!nombre||(tipo==="envio"&&!dir)){$("err").textContent=tipo==="envio"?"Completá tu nombre y la dirección de entrega.":"Completá tu nombre.";return}
   const mail=v("f_mail"); if(mail&&!/^\S+@\S+\.\S+$/.test(mail)){$("err").textContent="Revisá el email.";return}
   $("enviar").disabled=true;$("enviar").textContent="Enviando…";
-  const body={nombre,tipo,tieneBolsa:bolsa,direccion:tipo==="envio"?dir:"",telefono:v("f_tel"),email:mail,observaciones:v("f_obs"),items:items().map(i=>({id:i.id,cantidad:i.cantidad}))};
+  const body={nombre,tipo,tieneBolsa:bolsa,difusion:dif,direccion:tipo==="envio"?dir:"",telefono:v("f_tel"),email:mail,observaciones:v("f_obs"),items:items().map(i=>({id:i.id,cantidad:i.cantidad}))};
   let r;
   try{
     if(API_URL) r=await (await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)})).json();
@@ -182,10 +186,11 @@ async function enviar(){
   if(!r.ok){$("err").textContent=r.error;$("enviar").disabled=false;$("enviar").textContent="Confirmar pedido";return}
   carrito={}; render();
   abrir(`<div class="ok"><h2>¡Pedido recibido! 🌱</h2><p>Número <b>${esc(r.numero)}</b>${mail?`<br>Te enviamos la confirmación a ${esc(mail)}.`:""}</p>
-  ${r.items.map(i=>`<div class="linea"><span>${i.cantidad} ${esc(i.unidad)} · ${esc(i.nombre)}</span><b>${money(i.subtotal)}</b></div>`).join("")}
+  ${r.items.map(i=>`<div class="linea"><span>${i.cantidad} ${esc(i.unidad)} · ${esc(i.nombre)}${i.marca?" – "+esc(i.marca):""}</span><b>${money(i.subtotal)}</b></div>`).join("")}
   ${r.tipo==="Envío a domicilio"?`<div class="linea"><span>Envío${r.envio?"":" (gratis)"}</span><b>${money(r.envio)}</b></div>`:""}${r.bolsa?`<div class="linea"><span>Bolsa retornable</span><b>${money(r.bolsa)}</b></div>`:""}
   <div class="total"><span>Total a pagar al recibir</span><span>${money(r.total)}</span></div>
   <p>${r.tipo==="Retiro sábado"?`Retirás el ${esc(r.retiroTxt)} de 10 a 13 hs.`:`Te lo llevamos el ${esc(r.entregaTxt)} a: ${esc(dir)}`}</p>
+  ${dif?`<p style="margin-bottom:6px">¡Último paso! Tocá el botón desde tu celular para entrar al grupo 👇</p><p><a class="btn" style="display:inline-block;text-decoration:none;background:#25d366;color:#fff" href="${GRUPO_WSP}" target="_blank" rel="noopener">💬 Unirme al grupo de WhatsApp</a></p>`:""}
   <div class="noprint" style="display:flex;gap:10px"><button class="btn" style="background:var(--hoja);color:#fff" onclick="print()">Guardar / imprimir</button><button class="link" onclick="cerrar()">Cerrar</button></div></div>`);
 }
 init();
